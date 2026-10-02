@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remote name="hecker" fetch="https://github.com/its-hecker" />
+
+  <project name="infinity_cnb_android_device_google_coral"
+           path="device/google/coral" remote="hecker" revision="lineage-24.0" />
+
+  <project name="infinity_cnb_proprietary_vendor_google_coral"
+           path="vendor/google/coral" remote="hecker" revision="lineage-24.0" />
+
+  <project name="infinity_cnb_kernel_google_msm-4.14"
+           path="kernel/google/msm-4.14" remote="hecker" revision="cnb"
+           sync-s="true" />
+
+  <project name="vendor_lunaris_dolby"
+           path="vendor/lunaris/dolby" remote="hecker" revision="main" />
+</manifest>
