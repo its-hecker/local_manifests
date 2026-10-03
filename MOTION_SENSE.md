@@ -20,7 +20,7 @@ You need a working Android 17 ROM for coral or flame that already boots on the s
 | OsloFeedback source (smali) | [its-hecker/infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback), branch cnb | Aswin's Android 14 smali import plus the four Android 17 fixes |
 | OsloFeedback.apk and MotionSenseBridgePrebuilt.apk | Built from the repo above / [PixysOS-Devices/vendor_google_coral](https://github.com/PixysOS-Devices/vendor_google_coral) (fourteen-v3) | MotionSenseBridge is a 16 KB stub, use it unchanged |
 | APKEditor | [REAndroid/APKEditor](https://github.com/REAndroid/APKEditor) releases | Rebuilds the APK from smali |
-| Settings patch (optional) | Forward port of PixysOS commit c50735fc0f | Adds the Motion Sense pages in Settings |
+| Motion Sense settings page | `parts/` in [the coral device tree](https://github.com/its-hecker/infinity_cnb_android_device_google_coral) | Shown in Settings → System, no Settings fork needed |
 
 The kernel needs no changes: the Soli and Knowles (iaxxx) drivers in the msm-4.14 coral kernel already work.
 
@@ -112,7 +112,7 @@ The SystemUI plugin allowlist is the step most ports get wrong, because the ROM'
 
 | Property | File | Value | Why |
 | --- | --- | --- | --- |
-| `ro.vendor.aware_available` | `vendor.prop` | `true` | Oslo and the Settings pages treat the device as supported. Also needs the SELinux rule in Step 5, or it is silently never set |
+| `ro.vendor.aware_available` | `vendor.prop` | `true` | Oslo and the Motion Sense page treat the device as supported. Also needs the SELinux rule in Step 5, or it is silently never set |
 | `pixel.oslo.allowed_override` | `product.prop` | `1` | Bypasses Google's country list (Oslo logs `by country: false, by country override: true`) |
 | `pixel.oslo.airplane_mode.allowed_override` | `product.prop` | `1` | Optional: keeps Oslo on in airplane mode |
 
@@ -168,29 +168,48 @@ m selinux_policy
 
 If logcat shows no `avc:` lines at all, that does not mean there are no denials. KernelSU's `selinux_hide` can hide them; use `adb logcat -b all -d` and search for `avc:`.
 
-## Step 6 (optional): Motion Sense pages in Settings
+## Step 6: The Motion Sense settings page
 
-AOSP Settings has no Motion Sense UI, so without this step you turn it on with `adb`. The Settings patch is a forward port of PixysOS commit c50735fc0f (Aswin, reverse-engineered from SettingsGoogle). It adds System → Motion Sense, the Quick Gestures entries under Gestures, and the presence and reach entries on the Lock screen page.
+AOSP Settings has no Motion Sense UI. Instead of patching the ROM's Settings app, the coral device tree adds a Motion Sense page to its own `GoogleParts` app (`parts/` in the device tree), and Settings shows it under System by itself. The ROM's `packages/apps/Settings` stays untouched, so ROM updates need no rebasing.
 
-Changes needed on Android 17 compared with the Android 14 commit:
+How it works:
 
-- `AmbientDisplayAlwaysOnPreferenceController` was renamed `AmbientDisplayAlwaysOnPreferenceScreenController`
-- remove the decompiler's `/* bridge */` methods in `AwareDisplayPreferenceController` and the dialog preferences; they call super methods that no longer exist
-- restore assets and the `doze_always_on_title` string that AOSP deleted
-- make `awareFeatureProvider` an `open val` with a default in `FeatureFactory.kt`, so other subclasses still build
-- keep only `com.google.android.settings.aware.**` in `proguard.flags`
+- `GoogleParts` is platform-signed, runs as the system uid and is installed with every build, so it can write `Settings.Secure` without new permissions or privapp entries
+- the `MotionSenseActivity` declares the `com.android.settings.action.IA_SETTINGS` action and the meta-data `com.android.settings.category` = `com.android.settings.category.ia.system`. Settings lists any system app's activity that does this as a tile on that page
+- the page is built from SettingsLib (collapsing toolbar, main switch, footer) through `org.lineageos.settings.resources`, which every LineageOS 24.0 based ROM ships
 
-The pages show only when `ro.vendor.aware_available` is true. That property also hides the stock Always-on display toggle, which comes back through these pages. The code is reverse-engineered from a Google app, so keep the Settings fork that carries it private.
+The page has the main switch, Quick Gestures (skip songs and swipe direction, silence interruptions, pause music), Ambient display (idle lock screen, reach to check phone), auto-lock when nobody's around (only with a secure lock screen) and the extras below. Options are greyed out while Motion Sense is off, in airplane mode, in Battery Saver, or before Oslo has set `aware_allowed`.
 
-Without the Settings pages, turn features on from `adb`:
+For a device tree without `GoogleParts`, copy `parts/src/org/lineageos/settings/motionsense/`, the `motion_sense_*` resources and the activity entry from `parts/AndroidManifest.xml` into any platform-signed system app.
+
+The other option is to port Pixel's own pages into Settings, as PixysOS commit c50735fc0f did for Android 14. That puts Motion Sense entries on the Gestures and Lock screen pages too, but it means keeping a fork of the ROM's Settings.
+
+To set features without the page, use `adb`:
 
 ```
 adb shell settings put secure aware_enabled 1
 adb shell settings put secure skip_gesture 1
 adb shell settings put secure silence_gesture 1
 adb shell settings put secure doze_wake_display_gesture 1
-adb shell settings put secure doze_wake_lock_screen_gesture 1
+adb shell settings put secure doze_wake_screen_gesture 1
 ```
+
+## OsloFeedback extras
+
+On top of the four fixes, [infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (cnb) adds three optional features. Each one reads a `Settings.Secure` key, so it can be switched from the Motion Sense page (Step 6) or from `adb`:
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `aware_any_media_app` | `1` | Skip and play/pause work in any media app that supports them. `0` limits them to Google's list of about 23 apps |
+| `aware_ignore_videos` | `1` | Gestures never skip or pause a video from an app outside Google's list (YouTube, or any session that reports movie content). `0` turns this off |
+| `aware_glow_custom` | `1` | Tints the feedback glow. `0` keeps the stock blue |
+| `aware_glow_hue` | `270` | Glow hue in degrees: 0 red, 30 orange, 140 green, 190 cyan, 270 violet, 320 pink |
+
+```
+adb shell settings put secure aware_glow_hue 320
+```
+
+A new glow color shows the next time the glow appears after hiding, for example after turning the screen off and on. The code is in `smali/classes2/com/google/oslo/OsloTweaks.smali`. The glow colors in `colors.xml` stay stock, and `OsloTweaks.tintGlow()` rotates their hue at runtime.
 
 ## Testing
 

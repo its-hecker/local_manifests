@@ -1,6 +1,6 @@
 # Project Infinity X 17 for Pixel 4 XL (coral)
 
-Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, KernelSU-Next and Lunaris Dolby.
+Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, KernelSU-Next and Lunaris Dolby. Everything lives in the device, vendor and kernel trees: the ROM's own repositories, including Settings, stay unmodified.
 
 - [Part 1: Build Infinity X on a build server](#part-1-build-infinity-x-on-a-build-server)
 - [Part 2: Use these trees for another Android 17 ROM](#part-2-use-these-trees-for-another-android-17-rom)
@@ -122,13 +122,7 @@ To pick up a change in only one of these trees, sync just that path, for example
 
 ### After flashing
 
-Motion Sense has no Settings page yet. Turn it on from `adb`:
-
-```bash
-adb shell settings put secure aware_enabled 1
-adb shell settings put secure skip_gesture 1
-adb shell settings put secure silence_gesture 1
-```
+Open Settings → System → Motion Sense and turn on Use Motion Sense. The page also has the gesture switches, the "Control any media app" and "Ignore videos" options, and the glow color.
 
 Testing and troubleshooting are in [MOTION_SENSE.md](MOTION_SENSE.md#testing).
 
@@ -154,7 +148,7 @@ The trees work on another Android 17 ROM based on LineageOS 24.0 (for example Ev
 | ROM flags | `lineage_coral.mk` | Remove `INFINITY_BUILD`, `INFINITY_MAINTAINER`, `ro.infinity.soc` and `ro.infinity.camera`, and add the new ROM's own flags. Copy them from one of that ROM's official device trees |
 | Face unlock flag | `lineage_coral.mk` | `TARGET_FACE_UNLOCK_SUPPORTED := false` is Infinity's switch for its camera face unlock. Use the new ROM's equivalent, if it has one |
 | Build target | `lunch` command | The release name (`cp2a`) and product name may differ. Check the ROM's build guide |
-| Motion Sense Settings pages | The ROM's `packages/apps/Settings` fork | Optional. The Settings patch must be applied to the new ROM's own Settings, and some hunks may need fixing by hand |
+| Motion Sense settings page | `parts/` (GoogleParts) | None on a LineageOS-based ROM: it is a separate app that Settings shows by itself, so the ROM's Settings needs no patch. It needs `org.lineageos.settings.resources`, which LineageOS-based ROMs ship |
 
 ### What to change in the local manifest
 
