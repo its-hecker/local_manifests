@@ -17,7 +17,7 @@ You need a working Android 17 ROM for coral or flame that already boots on the s
 | Item | Where to get it | Notes |
 | --- | --- | --- |
 | Device and vendor trees | Your ROM's coral trees (LineageOS 24.0 based) | Must use the final stock vendor, TP1A.221005.002.B2 |
-| OsloFeedback source (smali) | [its-hecker/infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback), branch udc-qpr3 | Aswin's Android 14 smali import plus the four Android 17 fixes |
+| OsloFeedback source (smali) | [its-hecker/infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback), branch cnb | Aswin's Android 14 smali import plus the four Android 17 fixes |
 | OsloFeedback.apk and MotionSenseBridgePrebuilt.apk | Built from the repo above / [PixysOS-Devices/vendor_google_coral](https://github.com/PixysOS-Devices/vendor_google_coral) (fourteen-v3) | MotionSenseBridge is a 16 KB stub, use it unchanged |
 | APKEditor | [REAndroid/APKEditor](https://github.com/REAndroid/APKEditor) releases | Rebuilds the APK from smali |
 | Settings patch (optional) | Forward port of PixysOS commit c50735fc0f | Adds the Motion Sense pages in Settings |
@@ -89,7 +89,7 @@ Start from Aswin's Android 14 smali (it already handles the DarkReceiver v3 and 
 | 3 | `service/OsloGestureTrigger.smali`, `loadGesturePlugin()` | `START_RECOGNITION ERROR: Invalid sound model`: since Android 14 the detector copies the model when it is created, which Oslo does before saving it | After `updateModel()`, create a new `DetectorCallback` and detector and store it in `mGestureTriggerDetector`; drop `final` from that field |
 | 4 | `OsloOverlay$Minimizer.smali`, `addInteractionListeners()` | `NoSuchMethodError: InputManager.getInstance()` (removed in Android 14) | Call `InputManagerGlobal.getInstance()` and `InputManagerGlobal;->monitorGestureInput(String, int)` instead |
 
-The finished patches are commits on [its-hecker/infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (udc-qpr3), so you can cherry-pick them instead of editing by hand. Fix 1 example:
+The finished patches are commits on [its-hecker/infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (cnb), so you can cherry-pick them instead of editing by hand. Fix 1 example:
 
 ```
 # before
