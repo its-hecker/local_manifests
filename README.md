@@ -122,7 +122,7 @@ To pick up a change in only one of these trees, sync just that path, for example
 
 ### After flashing
 
-Open Settings → System → Motion Sense and turn on Use Motion Sense. The page also has the gesture switches, the "Control any media app" and "Ignore videos" options, and the glow color.
+Open Settings → System → Motion Sense and turn on Use Motion Sense. The page also has the gesture switches, the media app list, the "Control any media app" and "Ignore videos" options, and the glow color.
 
 Testing and troubleshooting are in [MOTION_SENSE.md](MOTION_SENSE.md#testing).
 

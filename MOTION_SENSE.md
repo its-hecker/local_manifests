@@ -178,7 +178,9 @@ How it works:
 - the `MotionSenseActivity` declares the `com.android.settings.action.IA_SETTINGS` action and the meta-data `com.android.settings.category` = `com.android.settings.category.ia.system`. Settings lists any system app's activity that does this as a tile on that page
 - the page is built from SettingsLib (collapsing toolbar, main switch, footer) through `org.lineageos.settings.resources`, which every LineageOS 24.0 based ROM ships
 
-The page has the main switch, Quick Gestures (skip songs and swipe direction, silence interruptions, pause music), Ambient display (idle lock screen, reach to check phone), auto-lock when nobody's around (only with a secure lock screen) and the extras below. Options are greyed out while Motion Sense is off, in airplane mode, in Battery Saver, or before Oslo has set `aware_allowed`.
+The page has the main switch, Quick Gestures (skip songs, silence interruptions, pause music), Ambient display (idle lock screen, reach to check phone), auto-lock when nobody's around (only with a secure lock screen) and the extras below. Each gesture opens its own page with an animation, its switch and, for skip, the swipe direction. The Media apps page lists every app with a launcher icon and edits `aware_media_apps`. Options are greyed out while Motion Sense is off, in airplane mode, in Battery Saver, or before Oslo has set `aware_allowed`.
+
+The animations are Lottie files in `parts/res/raw/`. Their colored layers are named after SettingsLib illustration tokens (`.illoCoreTheme3`, `.illoBg3` and so on), so `IllustrationPreference.applyIlloColors()` draws them in the wallpaper's Material You colors in light and dark theme. The glow layer is named `.motionGlow`, and the page tints it to the glow color.
 
 For a device tree without `GoogleParts`, copy `parts/src/org/lineageos/settings/motionsense/`, the `motion_sense_*` resources and the activity entry from `parts/AndroidManifest.xml` into any platform-signed system app.
 
@@ -196,12 +198,13 @@ adb shell settings put secure doze_wake_screen_gesture 1
 
 ## OsloFeedback extras
 
-On top of the four fixes, [infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (cnb) adds three optional features. Each one reads a `Settings.Secure` key, so it can be switched from the Motion Sense page (Step 6) or from `adb`:
+On top of the four fixes, [infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (cnb) adds four optional features. Each one reads a `Settings.Secure` key, so it can be switched from the Motion Sense page (Step 6) or from `adb`:
 
 | Key | Default | What it does |
 | --- | --- | --- |
 | `aware_any_media_app` | `1` | Skip and play/pause work in any media app that supports them. `0` limits them to Google's list of about 23 apps |
 | `aware_ignore_videos` | `1` | Gestures never skip or pause a video from an app outside Google's list (YouTube, or any session that reports movie content). `0` turns this off |
+| `aware_media_apps` | unset | Comma-separated list of media apps, edited on the Media apps page. With `aware_any_media_app` off, only these apps are controlled; with it on, these apps' videos are not ignored. Unset means Google's list |
 | `aware_glow_custom` | `1` | Tints the feedback glow. `0` keeps the stock blue |
 | `aware_glow_hue` | `270` | Glow hue in degrees: 0 red, 30 orange, 140 green, 190 cyan, 270 violet, 320 pink |
 
