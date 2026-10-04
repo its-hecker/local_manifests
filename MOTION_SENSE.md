@@ -212,7 +212,7 @@ On top of the four fixes, [infinity_OsloFeedback](https://github.com/its-hecker/
 adb shell settings put secure aware_glow_hue 320
 ```
 
-A new glow color shows the next time the glow appears after hiding, for example after turning the screen off and on. The code is in `smali/classes2/com/google/oslo/OsloTweaks.smali`. The glow colors in `colors.xml` stay stock, and `OsloTweaks.tintGlow()` rotates their hue at runtime.
+A new glow color shows the next time the glow changes state, without restarting SystemUI. The code is in `smali/classes2/com/google/oslo/OsloTweaks.smali`. The glow colors in `colors.xml` stay stock, and `OsloTweaks.tintGlow()` rotates their hue at runtime.
 
 ## Testing
 
