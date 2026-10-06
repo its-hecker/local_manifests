@@ -3,10 +3,10 @@
   <remote name="hecker" fetch="https://github.com/its-hecker" />
 
   <project name="infinity_cnb_android_device_google_coral"
-           path="device/google/coral" remote="hecker" revision="lineage-24.0" />
+           path="device/google/coral" remote="hecker" revision="faceid" />
 
   <project name="infinity_cnb_proprietary_vendor_google_coral"
-           path="vendor/google/coral" remote="hecker" revision="lineage-24.0" />
+           path="vendor/google/coral" remote="hecker" revision="faceid" />
 
   <project name="infinity_cnb_kernel_google_msm-4.14"
            path="kernel/google/msm-4.14" remote="hecker" revision="cnb"
