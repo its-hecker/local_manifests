@@ -79,6 +79,22 @@ git -C kernel/google/msm-4.14 submodule update --init --recursive
 
 If the sync fails with a "duplicate project" error, a project in this manifest is also in the ROM's manifest. Add `<remove-project name="..."/>` for the ROM's copy to `coral.xml`.
 
+#### Android 17 protobuf compatibility fix (experimental track)
+
+On `features-experimental`, apply the build fix after syncing and before selecting
+the build target:
+
+```bash
+bash .repo/local_manifests/apply-build-fixes.sh
+```
+
+Android 17's `prebuilts/misc/protobuf_vendorcompat` and the inherited Lineage
+compatibility tree both define the full and lite protobuf 21.12 vendor libraries.
+The script checks that AOSP supplies both providers, then removes only the two
+duplicate Lineage declarations. All other compatibility libraries, including the
+Face Unlock dependencies, stay in place. The script is safe to rerun. Apply it
+again after future syncs if those declarations are restored.
+
 ### 3. Check the tree before building
 
 ```bash
