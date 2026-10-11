@@ -110,12 +110,24 @@ All four should exist. `drivers/kernelsu` should be a link to `../KernelSU/kerne
 
 ```bash
 . build/envsetup.sh
-lunch lineage_coral-cp2a-user
-m selinux_policy
+lunch lineage_coral-userdebug
+test "$TARGET_PRODUCT" = "lineage_coral" &&
+test "$TARGET_BUILD_VARIANT" = "userdebug" &&
+m selinux_policy &&
 mka bacon
 ```
 
-`m selinux_policy` checks the SELinux policy in a few minutes, before the full build. Use `lineage_flame-cp2a-user` for the Pixel 4 (flame). `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
+The current Infinity X `lunch` function accepts `<product>-<variant>` and derives
+the release from `build/make/core/build_id.mk`. Do not use the old three-part
+`lineage_coral-cp2a-userdebug` form: this function reads `cp2a-userdebug` as the
+variant. It can return success after target selection fails, so the checks above
+must pass before compiling. A log mentioning `build.aosp_arm64.ninja` is analyzing
+the generic AOSP product rather than coral.
+
+These instructions use `userdebug` for the experimental track. For a release
+`user` build, use `lunch lineage_coral-user` and check that the variant is `user`.
+
+`m selinux_policy` checks the SELinux policy in a few minutes, before the full build. Use `lineage_flame-userdebug` for the Pixel 4 (flame), and change the product check to `lineage_flame`. `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
 
 The flashable zip is written to `out/target/product/coral/`:
 
@@ -130,7 +142,9 @@ cd ~/infinityx
 git -C .repo/local_manifests pull
 repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
 . build/envsetup.sh
-lunch lineage_coral-cp2a-user
+lunch lineage_coral-userdebug
+test "$TARGET_PRODUCT" = "lineage_coral" &&
+test "$TARGET_BUILD_VARIANT" = "userdebug" &&
 mka bacon
 ```
 
@@ -163,7 +177,7 @@ The trees work on another Android 17 ROM based on LineageOS 24.0 (for example Ev
 | Common ROM makefile | `lineage_coral.mk`, `lineage_flame.mk` | Replace `vendor/infinity/config/common_full_phone.mk` with the new ROM's common makefile |
 | ROM flags | `lineage_coral.mk` | Remove `INFINITY_BUILD`, `INFINITY_MAINTAINER`, `ro.infinity.soc` and `ro.infinity.camera`, and add the new ROM's own flags. Copy them from one of that ROM's official device trees |
 | Face unlock flag | `lineage_coral.mk` | `TARGET_FACE_UNLOCK_SUPPORTED := false` is Infinity's switch for its camera face unlock. Use the new ROM's equivalent, if it has one |
-| Build target | `lunch` command | The release name (`cp2a`) and product name may differ. Check the ROM's build guide |
+| Build target | `lunch` command | The target syntax and product name may differ. Infinity selects its release automatically; check the other ROM's build guide |
 | Motion Sense settings page | `parts/` (GoogleParts) | None on a LineageOS-based ROM: it is a separate app that Settings shows by itself, so the ROM's Settings needs no patch. It needs `org.lineageos.settings.resources`, which LineageOS-based ROMs ship |
 
 ### What to change in the local manifest
