@@ -15,9 +15,9 @@ Local manifest and build notes for Project Infinity X (Android 17, based on Line
 | `kernel/google/msm-4.14` | [infinity_cnb_kernel_google_msm-4.14](https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14) | `cnb-Latest-stable` | Kernel with KernelSU-Next (as a submodule) |
 | `vendor/lunaris/dolby` | [vendor_lunaris_dolby](https://github.com/its-hecker/vendor_lunaris_dolby) | `main` | Dolby Atmos |
 
-Smali source for the Motion Sense app: [infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (`cnb`). The build does not use it directly: it uses the finished APK in the vendor tree.
+Smali source for the Motion Sense app: [infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (`cnb-Latest-stable`). The build does not use it directly: it uses the finished APK in the vendor tree.
 
-The device, vendor and local manifest branches were promoted from
+The device, vendor, OsloFeedback source and local manifest branches were promoted from
 `features-experimental`; the kernel branch was promoted from `cnb`.
 Google Pokemon Sidekick and custom Sidekick wallpapers are removed.
 Motion Sense, glow and 3D Face ID retain the tested fixes.
