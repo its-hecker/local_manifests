@@ -73,7 +73,7 @@ ccache -M 50G
 mkdir -p ~/infinityx && cd ~/infinityx
 repo init -u https://github.com/projectinfinity-X/manifest -b 17 --git-lfs
 git clone https://github.com/its-hecker/local_manifests .repo/local_manifests
-repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+repo sync -c -j8 --fail-fast --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
 ```
 
 The kernel brings KernelSU-Next in as a submodule. If `kernel/google/msm-4.14/KernelSU` is empty after the sync:
@@ -86,19 +86,27 @@ If the sync fails with a "duplicate project" error, a project in this manifest i
 
 #### Android 17 protobuf compatibility fix
 
-On `cnb-Latest-stable`, apply the build fix after syncing and before selecting
+On `cnb-Latest-stable`, check the protobuf providers after syncing and selecting
 the build target:
 
 ```bash
+export USE_RBE=false USE_REWRAPPER=false
+source build/envsetup.sh
+lunch lineage_coral-userdebug
+test "$TARGET_PRODUCT" = "lineage_coral" &&
+test "$TARGET_BUILD_VARIANT" = "userdebug" &&
 bash .repo/local_manifests/apply-build-fixes.sh
 ```
 
 Android 17's `prebuilts/misc/protobuf_vendorcompat` and the inherited Lineage
-compatibility tree both define the full and lite protobuf 21.12 vendor libraries.
-The script checks that AOSP supplies both providers, then removes only the two
-duplicate Lineage declarations. All other compatibility libraries, including the
-Face Unlock dependencies, stay in place. The script is safe to rerun. Apply it
-again after future syncs if those declarations are restored.
+compatibility tree both declare the full and lite protobuf 21.12 vendor libraries.
+Current Infinity excludes the AOSP directory with `PRODUCT_SOURCE_ROOT_DIRS`,
+so the Lineage declarations must remain. The script reads the selected product's
+effective source roots, retains the active providers and can reverse the old
+two-module removal when AOSP is excluded. It removes the two Lineage declarations
+only when both directories are active and AOSP supplies both replacements.
+Unrelated compatibility libraries and local edits stay in place. The script is
+safe to rerun; do not remove the entire compatibility tree.
 
 ### 3. Check the tree before building
 
@@ -114,12 +122,15 @@ All four should exist. `drivers/kernelsu` should be a link to `../KernelSU/kerne
 ### 4. Build
 
 ```bash
-. build/envsetup.sh
+export USE_RBE=false USE_REWRAPPER=false
+source build/envsetup.sh
 lunch lineage_coral-userdebug
 test "$TARGET_PRODUCT" = "lineage_coral" &&
 test "$TARGET_BUILD_VARIANT" = "userdebug" &&
-m selinux_policy &&
-mka bacon
+test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false" &&
+bash .repo/local_manifests/apply-build-fixes.sh &&
+m -j8 selinux_policy &&
+m -j8 bacon
 ```
 
 The current Infinity X `lunch` function accepts `<product>-<variant>` and derives
@@ -132,7 +143,10 @@ the generic AOSP product rather than coral.
 These instructions use `userdebug` for development builds. For a release
 `user` build, use `lunch lineage_coral-user` and check that the variant is `user`.
 
-`m selinux_policy` checks the SELinux policy in a few minutes, before the full build. Use `lineage_flame-userdebug` for the Pixel 4 (flame), and change the product check to `lineage_flame`. `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
+`m -j8 selinux_policy` checks the SELinux policy before the full build. Use `lineage_flame-userdebug` for the Pixel 4 (flame), and change the product check to `lineage_flame`. `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
+
+RBE is disabled here for the ServerHive reproxy crash. This is a build-host
+setting: keep it in the environment instead of editing `vendor/infinity/config/common.mk`.
 
 The flashable zip is written to `out/target/product/coral/`:
 
@@ -143,16 +157,52 @@ ls -lh out/target/product/coral/*.zip
 ### 5. Update and rebuild
 
 ```bash
+(
+set -e
 cd ~/infinityx
-git -C .repo/local_manifests pull
-repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+git -C .repo/local_manifests fetch origin
+if git -C .repo/local_manifests show-ref --verify --quiet refs/heads/cnb-Latest-stable; then
+    git -C .repo/local_manifests switch cnb-Latest-stable
+else
+    git -C .repo/local_manifests switch --track origin/cnb-Latest-stable
+fi
+git -C .repo/local_manifests pull --ff-only
+repo sync -c -j8 --fail-fast --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+git -C kernel/google/msm-4.14 submodule update --init --recursive
+export USE_RBE=false USE_REWRAPPER=false
+source build/envsetup.sh || exit
+lunch lineage_coral-userdebug || exit
+test "$TARGET_PRODUCT" = "lineage_coral"
+test "$TARGET_BUILD_VARIANT" = "userdebug"
+test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false"
 bash .repo/local_manifests/apply-build-fixes.sh
-. build/envsetup.sh
-lunch lineage_coral-userdebug
-test "$TARGET_PRODUCT" = "lineage_coral" &&
-test "$TARGET_BUILD_VARIANT" = "userdebug" &&
-mka bacon
+m -j8 selinux_policy
+m -j8 bacon
+)
 ```
+
+The subshell stops at the first failure without closing your SSH shell. Do not
+compile after `Unable to fully sync the tree`. `--force-sync` repairs Git directory
+links; it does not resolve modified tracked files.
+
+If a previous local build fix blocks checkout in `hardware/lineage/compat` or
+`vendor/infinity`, save the edits before rerunning the update block:
+
+```bash
+cd ~/infinityx
+build_fix_backup="$(mktemp -d "$HOME/infinityx-local-fixes-XXXXXXXX")"
+for build_fix_repo in hardware/lineage/compat vendor/infinity; do
+    build_fix_name="${build_fix_repo//\//_}"
+    git -C "$build_fix_repo" diff --binary HEAD > "$build_fix_backup/$build_fix_name.patch"
+    git -C "$build_fix_repo" stash push -u -m "before stable sync: $build_fix_backup"
+done
+echo "Saved local edits in $build_fix_backup and each repository's stash."
+```
+
+The stashes also retain untracked files. Leave these stashes saved while the
+protobuf script checks the new configuration; do not automatically pop the old
+workarounds over the updated sources. Review any unrelated ServerHive fixes in
+the saved patches before deciding to reapply them.
 
 To pick up a change in only one of these trees, sync just that path, for example `repo sync -c --force-sync vendor/google/coral`.
 
