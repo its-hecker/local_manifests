@@ -90,9 +90,10 @@ On `cnb-Latest-stable`, check the protobuf providers after syncing and selecting
 the build target:
 
 ```bash
-export USE_RBE=false USE_REWRAPPER=false
-source build/envsetup.sh
-lunch lineage_coral-userdebug
+cd ~/infinityx &&
+export USE_RBE=false USE_REWRAPPER=false &&
+source build/envsetup.sh &&
+breakfast lineage_coral-userdebug &&
 test "$TARGET_PRODUCT" = "lineage_coral" &&
 test "$TARGET_BUILD_VARIANT" = "userdebug" &&
 bash .repo/local_manifests/apply-build-fixes.sh
@@ -121,30 +122,39 @@ All four should exist. `drivers/kernelsu` should be a link to `../KernelSU/kerne
 
 ### 4. Build
 
+On ServerHive, open a fresh Byobu/Tmux window for this ROM (`F2` in Byobu),
+then run the commands in that window's current shell. The
+[provider's guide](https://github.com/ServerHive-Development/guide) requires a
+persistent session and documents building through `mka` or `brunch`. Keep
+environment setup in the current shell so the selected target remains available.
+
 ```bash
-export USE_RBE=false USE_REWRAPPER=false
-source build/envsetup.sh
-lunch lineage_coral-userdebug
+cd ~/infinityx &&
+export USE_RBE=false USE_REWRAPPER=false &&
+source build/envsetup.sh &&
+breakfast lineage_coral-userdebug &&
 test "$TARGET_PRODUCT" = "lineage_coral" &&
 test "$TARGET_BUILD_VARIANT" = "userdebug" &&
 test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false" &&
 bash .repo/local_manifests/apply-build-fixes.sh &&
 python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply &&
-m -j8 selinux_policy &&
-m -j8 bacon
+mka -j8 selinux_policy &&
+mka -j8 bacon
 ```
 
+`breakfast lineage_coral-userdebug` forwards this full target to `lunch`.
 The current Infinity X `lunch` function accepts `<product>-<variant>` and derives
 the release from `build/make/core/build_id.mk`. Do not use the old three-part
 `lineage_coral-cp2a-userdebug` form: this function reads `cp2a-userdebug` as the
-variant. It can return success after target selection fails, so the checks above
+variant. `breakfast coral` currently expands to that old three-part form, so use
+the full target above. `lunch` can return success after target selection fails, so the checks above
 must pass before compiling. A log mentioning `build.aosp_arm64.ninja` is analyzing
 the generic AOSP product rather than coral.
 
 These instructions use `userdebug` for development builds. For a release
 `user` build, use `lunch lineage_coral-user` and check that the variant is `user`.
 
-`m -j8 selinux_policy` checks the SELinux policy before the full build. Use `lineage_flame-userdebug` for the Pixel 4 (flame), and change the product check to `lineage_flame`. `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
+`mka -j8 selinux_policy` checks the SELinux policy before the full build. Use `breakfast lineage_flame-userdebug` for the Pixel 4 (flame), and change the product check to `lineage_flame`. `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
 
 RBE is disabled here for the ServerHive reproxy crash. This is a build-host
 setting: keep it in the environment instead of editing `vendor/infinity/config/common.mk`.
@@ -166,32 +176,30 @@ ls -lh out/target/product/coral/*.zip
 ### 5. Update and rebuild
 
 ```bash
-(
-set -e
-cd ~/infinityx
-git -C .repo/local_manifests fetch origin
+cd ~/infinityx &&
+git -C .repo/local_manifests fetch origin &&
 if git -C .repo/local_manifests show-ref --verify --quiet refs/heads/cnb-Latest-stable; then
     git -C .repo/local_manifests switch cnb-Latest-stable
 else
     git -C .repo/local_manifests switch --track origin/cnb-Latest-stable
-fi
-git -C .repo/local_manifests pull --ff-only
-repo sync -c -j8 --fail-fast --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
-git -C kernel/google/msm-4.14 submodule update --init --recursive
-export USE_RBE=false USE_REWRAPPER=false
-source build/envsetup.sh || exit
-lunch lineage_coral-userdebug || exit
-test "$TARGET_PRODUCT" = "lineage_coral"
-test "$TARGET_BUILD_VARIANT" = "userdebug"
-test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false"
-bash .repo/local_manifests/apply-build-fixes.sh
-python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply
-m -j8 selinux_policy
-m -j8 bacon
-)
+fi &&
+git -C .repo/local_manifests pull --ff-only &&
+repo sync -c -j8 --fail-fast --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune &&
+git -C kernel/google/msm-4.14 submodule update --init --recursive &&
+export USE_RBE=false USE_REWRAPPER=false &&
+source build/envsetup.sh &&
+breakfast lineage_coral-userdebug &&
+test "$TARGET_PRODUCT" = "lineage_coral" &&
+test "$TARGET_BUILD_VARIANT" = "userdebug" &&
+test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false" &&
+bash .repo/local_manifests/apply-build-fixes.sh &&
+python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply &&
+mka -j8 selinux_policy &&
+mka -j8 bacon
 ```
 
-The subshell stops at the first failure without closing your SSH shell. Do not
+The `&&` chain stops at the first failed command without closing your SSH shell,
+and leaves environment setup in that same shell. Do not
 compile after `Unable to fully sync the tree`. `--force-sync` repairs Git directory
 links; it does not resolve modified tracked files.
 
