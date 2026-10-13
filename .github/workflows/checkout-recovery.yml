@@ -1,0 +1,24 @@
+name: Checkout recovery checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify recovery preserves source edits and outputs
+        run: python3 -m unittest discover -s tests -p 'test_restore_checkout.py'
+      - name: Check build helper and documented Bash syntax
+        run: |
+          bash -n apply-build-fixes.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          for block in re.findall(r"\x60\x60\x60bash\n(.*?)\n\x60\x60\x60", Path("README.md").read_text(), re.S):
+              subprocess.run(["bash", "-n"], input=block, text=True, check=True)
+          PY
