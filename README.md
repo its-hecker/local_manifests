@@ -28,7 +28,17 @@ A ROM build needs an x86-64 Linux machine; it cannot run on a phone. These steps
 
 ### 1. Connect and set up the environment (once)
 
-SSH into the server, then install the build packages:
+On ServerHive, use the preconfigured build tools inside a Byobu/Tmux session.
+Check that the required commands are available:
+
+```bash
+command -v repo git python3
+git lfs version
+```
+
+The provider does not supply standard root access. If a tool is missing, request
+it from ServerHive support. The package-install commands below are for a
+self-managed Ubuntu machine with sudo access:
 
 ```bash
 sudo apt update
@@ -38,7 +48,8 @@ sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-m
   schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3 unzip
 ```
 
-Install `repo`:
+ServerHive already provides `repo`. On another machine where it is missing,
+install it in your home directory:
 
 ```bash
 mkdir -p ~/bin
@@ -70,9 +81,11 @@ ccache -M 50G
 ### 2. Get the source
 
 ```bash
-mkdir -p ~/infinityx && cd ~/infinityx
-repo init -u https://github.com/projectinfinity-X/manifest -b 17 --git-lfs
-git clone https://github.com/its-hecker/local_manifests .repo/local_manifests
+mkdir -p ~/infinityx &&
+cd ~/infinityx &&
+repo init -u https://github.com/projectinfinity-X/manifest -b 17 --git-lfs &&
+git clone --branch cnb-Latest-stable --single-branch \
+    https://github.com/its-hecker/local_manifests .repo/local_manifests &&
 repo sync -c -j8 --fail-fast --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
 ```
 
