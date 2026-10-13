@@ -10,12 +10,17 @@ Local manifest and build notes for Project Infinity X (Android 17, based on Line
 
 | Path | Repository | Branch | What it is |
 | --- | --- | --- | --- |
-| `device/google/coral` | [infinity_cnb_android_device_google_coral](https://github.com/its-hecker/infinity_cnb_android_device_google_coral) | `lineage-24.0` | Device tree (coral and flame) |
-| `vendor/google/coral` | [infinity_cnb_proprietary_vendor_google_coral](https://github.com/its-hecker/infinity_cnb_proprietary_vendor_google_coral) | `lineage-24.0` | Vendor blobs from TP1A.221005.002.B2, plus the Motion Sense APKs |
-| `kernel/google/msm-4.14` | [infinity_cnb_kernel_google_msm-4.14](https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14) | `cnb` | Kernel with KernelSU-Next (as a submodule) |
+| `device/google/coral` | [infinity_cnb_android_device_google_coral](https://github.com/its-hecker/infinity_cnb_android_device_google_coral) | `cnb-Latest-stable` | Device tree (coral and flame) |
+| `vendor/google/coral` | [infinity_cnb_proprietary_vendor_google_coral](https://github.com/its-hecker/infinity_cnb_proprietary_vendor_google_coral) | `cnb-Latest-stable` | Vendor blobs from TP1A.221005.002.B2, plus the Motion Sense APKs |
+| `kernel/google/msm-4.14` | [infinity_cnb_kernel_google_msm-4.14](https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14) | `cnb-Latest-stable` | Kernel with KernelSU-Next (as a submodule) |
 | `vendor/lunaris/dolby` | [vendor_lunaris_dolby](https://github.com/its-hecker/vendor_lunaris_dolby) | `main` | Dolby Atmos |
 
 Smali source for the Motion Sense app: [infinity_OsloFeedback](https://github.com/its-hecker/infinity_OsloFeedback) (`cnb`). The build does not use it directly: it uses the finished APK in the vendor tree.
+
+The device, vendor and local manifest branches were promoted from
+`features-experimental`; the kernel branch was promoted from `cnb`.
+Google Pokemon Sidekick and custom Sidekick wallpapers are removed.
+Motion Sense, glow and 3D Face ID retain the tested fixes.
 
 ## Part 1: Build Infinity X on a build server
 
@@ -79,9 +84,9 @@ git -C kernel/google/msm-4.14 submodule update --init --recursive
 
 If the sync fails with a "duplicate project" error, a project in this manifest is also in the ROM's manifest. Add `<remove-project name="..."/>` for the ROM's copy to `coral.xml`.
 
-#### Android 17 protobuf compatibility fix (experimental track)
+#### Android 17 protobuf compatibility fix
 
-On `features-experimental`, apply the build fix after syncing and before selecting
+On `cnb-Latest-stable`, apply the build fix after syncing and before selecting
 the build target:
 
 ```bash
@@ -124,7 +129,7 @@ variant. It can return success after target selection fails, so the checks above
 must pass before compiling. A log mentioning `build.aosp_arm64.ninja` is analyzing
 the generic AOSP product rather than coral.
 
-These instructions use `userdebug` for the experimental track. For a release
+These instructions use `userdebug` for development builds. For a release
 `user` build, use `lunch lineage_coral-user` and check that the variant is `user`.
 
 `m selinux_policy` checks the SELinux policy in a few minutes, before the full build. Use `lineage_flame-userdebug` for the Pixel 4 (flame), and change the product check to `lineage_flame`. `lunch` may also fetch `packages/apps/ElmyraService` (Active Edge), which the device tree lists in `lineage.dependencies`.
@@ -141,6 +146,7 @@ ls -lh out/target/product/coral/*.zip
 cd ~/infinityx
 git -C .repo/local_manifests pull
 repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+bash .repo/local_manifests/apply-build-fixes.sh
 . build/envsetup.sh
 lunch lineage_coral-userdebug
 test "$TARGET_PRODUCT" = "lineage_coral" &&
@@ -158,7 +164,7 @@ Testing and troubleshooting are in [MOTION_SENSE.md](MOTION_SENSE.md#testing).
 
 ## Part 2: Use these trees for another Android 17 ROM
 
-The trees work on another Android 17 ROM based on LineageOS 24.0 (for example Evolution X 17), but the device tree has Infinity-specific parts. Keep a separate branch of the device tree per ROM (for example `evo-17`, branched from `lineage-24.0`) so Motion Sense fixes can be cherry-picked into all of them.
+The trees work on another Android 17 ROM based on LineageOS 24.0 (for example Evolution X 17), but the device tree has Infinity-specific parts. Keep a separate branch of the device tree per ROM (for example `evo-17`, branched from `cnb-Latest-stable`) so Motion Sense fixes can be cherry-picked into all of them.
 
 ### What stays the same
 
@@ -173,7 +179,7 @@ The trees work on another Android 17 ROM based on LineageOS 24.0 (for example Ev
 
 | What | Where | Change |
 | --- | --- | --- |
-| SystemUI plugin allowlist | `overlay-oslo/frameworks/base/packages/SystemUI/res/values/config.xml` | It holds Infinity's `config_pluginAllowlist` plus `com.google.oslo`. Replace it with the new ROM's own list (`grep -rn config_pluginAllowlist vendor/`) and keep `com.google.oslo` at the end. With Infinity's list, Oslo still loads, but the ROM's own SystemUI plugins stop working. If the ROM does not define the array at all, this folder can stay as it is |
+| SystemUI plugin allowlist | `overlay-oslo/frameworks/base/packages/SystemUI/res/values/config.xml` | Preserve the new ROM's own `config_pluginAllowlist` and append the exact `com.google.oslo/com.google.oslo.OsloOverlay` and `com.google.oslo/com.google.oslo.OsloSensorManager` components. The production overlay is in `rro_overlays/OsloSystemUIOverlay/`. With Infinity's list, Oslo still loads, but the ROM's own SystemUI plugins stop working. If the ROM does not define the array at all, this folder can stay as it is |
 | Common ROM makefile | `lineage_coral.mk`, `lineage_flame.mk` | Replace `vendor/infinity/config/common_full_phone.mk` with the new ROM's common makefile |
 | ROM flags | `lineage_coral.mk` | Remove `INFINITY_BUILD`, `INFINITY_MAINTAINER`, `ro.infinity.soc` and `ro.infinity.camera`, and add the new ROM's own flags. Copy them from one of that ROM's official device trees |
 | Face unlock flag | `lineage_coral.mk` | `TARGET_FACE_UNLOCK_SUPPORTED := false` is Infinity's switch for its camera face unlock. Use the new ROM's equivalent, if it has one |
