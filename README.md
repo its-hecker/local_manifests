@@ -1,6 +1,6 @@
 # Project Infinity X 17 for Pixel 4 XL (coral)
 
-Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, KernelSU-Next and Lunaris Dolby. Everything lives in the device, vendor and kernel trees: the ROM's own repositories, including Settings, stay unmodified.
+Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, KernelSU-Next and Lunaris Dolby. Compatibility libraries, apps and configuration live in the device, vendor and kernel trees. Face ID also requires two guarded framework adapter fixes applied from the device tree after syncing. The ROM's Settings source stays unmodified.
 
 - [Part 1: Build Infinity X on a build server](#part-1-build-infinity-x-on-a-build-server)
 - [Part 2: Use these trees for another Android 17 ROM](#part-2-use-these-trees-for-another-android-17-rom)
@@ -129,6 +129,7 @@ test "$TARGET_PRODUCT" = "lineage_coral" &&
 test "$TARGET_BUILD_VARIANT" = "userdebug" &&
 test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false" &&
 bash .repo/local_manifests/apply-build-fixes.sh &&
+python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply &&
 m -j8 selinux_policy &&
 m -j8 bacon
 ```
@@ -147,6 +148,14 @@ These instructions use `userdebug` for development builds. For a release
 
 RBE is disabled here for the ServerHive reproxy crash. This is a build-host
 setting: keep it in the environment instead of editing `vendor/infinity/config/common.mk`.
+
+The Face ID script checks the challenge-revocation and enrollment-feature methods
+before writing and backs up the adapter under `out/face-framework-patches/`.
+Reapply it after syncing or restoring `frameworks/base`. Its implementation and
+patches are committed in the stable device tree, but applying them intentionally
+leaves `HidlToAidlSessionAdapter.java` locally modified in the upstream framework
+repository. That `repo status` entry is expected. See the
+[Face ID framework notes](https://github.com/its-hecker/infinity_cnb_android_device_google_coral/blob/cnb-Latest-stable/faceunlock/patches/README.md).
 
 The flashable zip is written to `out/target/product/coral/`:
 
@@ -176,6 +185,7 @@ test "$TARGET_PRODUCT" = "lineage_coral"
 test "$TARGET_BUILD_VARIANT" = "userdebug"
 test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "false"
 bash .repo/local_manifests/apply-build-fixes.sh
+python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply
 m -j8 selinux_policy
 m -j8 bacon
 )
