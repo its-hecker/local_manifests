@@ -25,11 +25,11 @@ Run in the source directory used for the successful build:
 
 ```bash
 cd ~/infinityx-gcam &&
-git -C .repo/local_manifests fetch origin cnb-Latest-stable:refs/remotes/origin/cnb-Latest-stable &&
+git -C .repo/local_manifests fetch origin cnb-Latest-stable &&
 if git -C .repo/local_manifests show-ref --verify --quiet refs/heads/cnb-Latest-stable; then
     git -C .repo/local_manifests switch cnb-Latest-stable
 else
-    git -C .repo/local_manifests switch --track origin/cnb-Latest-stable
+    git -C .repo/local_manifests switch --no-track -c cnb-Latest-stable FETCH_HEAD
 fi &&
 git -C .repo/local_manifests pull --ff-only origin cnb-Latest-stable &&
 repo sync -c -j8 --fail-fast device/google/coral vendor/google/coral &&
@@ -54,6 +54,16 @@ build commands in that window's current shell. Keep the provider's RBE and
 Ninja configuration, and retain the existing protobuf and Face ID framework
 fixes. Camera does not need a separate build flag or an external download.
 
+After syncing the Aperture removal and selecting `lineage_coral-userdebug`, clear
+the previous partition staging directories once, then build. `installclean` keeps
+compiled intermediates for reuse:
+
+```bash
+mka installclean &&
+mka -j8 selinux_policy &&
+mka -j8 bacon
+```
+
 ## Verification and runtime notes
 
 The read-only vendor CI reconstructs the committed APK set and checks all ten
@@ -63,7 +73,11 @@ and coral-only product selection. The actual Infinity-X Soong extractor has
 also been checked to preserve the base plus nine feature APKs byte-for-byte.
 
 The Tensor-specific feature modules are excluded. The startup native library
-and common Camera assets are included. The existing camera app stays installed.
+and common Camera assets are included. Coral sets `PRODUCT_NO_CAMERA := true`
+before inheriting Infinity-X's common product configuration, so Aperture is
+excluded. Google Camera remains selected separately; Flame's camera setup is
+unchanged. After boot, `adb shell pm list packages org.lineageos.aperture` should
+return no output.
 
 Runtime commands and individual-mode checks are in
 `device/google/coral/camera/README.md`. A newer user-installed Camera update can
