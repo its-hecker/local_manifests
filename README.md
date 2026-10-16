@@ -1,5 +1,11 @@
 # Project Infinity X 17 for Pixel 4 XL (coral)
 
+**Google Camera experiment:** this `gcam-experimental` branch selects the matching
+device/vendor branches and adds stock Google Camera **8.7.250.494820638.44**.
+Use [the experimental build instructions](docs/GCAM_EXPERIMENTAL.md) and
+`build-gcam.sh`. The stable setup below remains the reference for the server and
+general source fixes. Camera runtime on Android 17 still needs device testing.
+
 Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, KernelSU-Next and Lunaris Dolby. Compatibility libraries, apps and configuration live in the device, vendor and kernel trees. Face ID also requires two guarded framework adapter fixes applied from the device tree after syncing. The ROM's Settings source stays unmodified.
 
 - [Part 1: Build Infinity X on a build server](#part-1-build-infinity-x-on-a-build-server)
