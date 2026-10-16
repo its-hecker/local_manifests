@@ -1,17 +1,18 @@
 # Project Infinity X 17 for Pixel 4 XL (coral)
 
-Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, KernelSU-Next and Lunaris Dolby. Compatibility libraries, apps and configuration live in the device, vendor and kernel trees. Face ID also requires two guarded framework adapter fixes applied from the device tree after syncing. The ROM's Settings source stays unmodified.
+Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, native 3D Face ID, Google Camera 8.7, KernelSU-Next and Lunaris Dolby. Compatibility libraries, apps and configuration live in the device, vendor and kernel trees. Face ID also requires two guarded framework adapter fixes applied from the device tree after syncing. The ROM's Settings source stays unmodified.
 
 - [Part 1: Build Infinity X on a build server](#part-1-build-infinity-x-on-a-build-server)
 - [Part 2: Use these trees for another Android 17 ROM](#part-2-use-these-trees-for-another-android-17-rom)
 - [Motion Sense porting guide](MOTION_SENSE.md)
+- [Stable Google Camera integration and syncing](docs/GOOGLE_CAMERA.md)
 
 ## What this manifest adds
 
 | Path | Repository | Branch | What it is |
 | --- | --- | --- | --- |
 | `device/google/coral` | [infinity_cnb_android_device_google_coral](https://github.com/its-hecker/infinity_cnb_android_device_google_coral) | `cnb-Latest-stable` | Device tree (coral and flame) |
-| `vendor/google/coral` | [infinity_cnb_proprietary_vendor_google_coral](https://github.com/its-hecker/infinity_cnb_proprietary_vendor_google_coral) | `cnb-Latest-stable` | Vendor blobs from TP1A.221005.002.B2, plus the Motion Sense APKs |
+| `vendor/google/coral` | [infinity_cnb_proprietary_vendor_google_coral](https://github.com/its-hecker/infinity_cnb_proprietary_vendor_google_coral) | `cnb-Latest-stable` | Vendor blobs from TP1A.221005.002.B2, plus the Motion Sense APKs and signed Google Camera 8.7 |
 | `kernel/google/msm-4.14` | [infinity_cnb_kernel_google_msm-4.14](https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14) | `cnb-Latest-stable` | Kernel with KernelSU-Next (as a submodule) |
 | `vendor/lunaris/dolby` | [vendor_lunaris_dolby](https://github.com/its-hecker/vendor_lunaris_dolby) | `main` | Dolby Atmos |
 
@@ -21,6 +22,12 @@ The device, vendor, OsloFeedback source and local manifest branches were promote
 `features-experimental`; the kernel branch was promoted from `cnb`.
 Google Pokemon Sidekick and custom Sidekick wallpapers are removed.
 Motion Sense, glow and 3D Face ID retain the tested fixes.
+
+Stock Google Camera **8.7.250.494820638.44** is included for coral on
+`cnb-Latest-stable`. The maintainer confirmed the experimental build booted and
+GCam worked on 2026-10-16 before approving this promotion. The original signed
+base APK and nine common splits are retained unchanged. Flame's product does
+not select this Camera package.
 
 ## Part 1: Build Infinity X on a build server
 
