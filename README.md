@@ -51,8 +51,12 @@ mka -j8 bacon
 cd ~/infinityx
 git clone https://github.com/ProjectInfinity-X/vendor_infinity-priv_keys-template \
   vendor/infinity-priv/keys
+
+
 cd vendor/infinity-priv/keys
 ./keys.sh
+
+
 cd ~/infinityx
 ```
 
