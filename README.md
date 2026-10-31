@@ -45,6 +45,16 @@ python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply &&
 mka -j8 selinux_policy &&
 mka -j8 bacon
 ```
+3. Sign Rom with Private Keys
+
+```bash
+cd ~/infinityx
+git clone https://github.com/ProjectInfinity-X/vendor_infinity-priv_keys-template \
+  vendor/infinity-priv/keys
+cd vendor/infinity-priv/keys
+./keys.sh
+cd ~/infinityx
+```
 
 The sections below explain setup, source recovery and later rebuilds. Build
 outputs are under `out/target/product/coral/`.
