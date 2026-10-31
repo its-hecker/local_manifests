@@ -13,17 +13,22 @@ The `&&` chain stops at the first failure. Keep the provider's RBE enabled.
 mkdir -p ~/infinityx &&
 cd ~/infinityx &&
 git lfs install &&
-repo init -u https://github.com/ProjectInfinity-X/manifest.git -b 17 --git-lfs &&
-git clone --branch cnb-Latest-stable --single-branch https://github.com/its-hecker/local_manifests.git .repo/local_manifests &&
-repo sync -c -j8 --fail-fast --no-clone-bundle --no-tags --optimized-fetch &&
-git -C kernel/google/msm-4.14 submodule update --init --recursive &&
-git -C vendor/google/coral lfs pull &&
+repo init \
+  -u https://github.com/ProjectInfinity-X/manifest \
+  -b 17 --git-lfs &&
+git clone --branch cnb-Latest-stable --single-branch \
+  https://github.com/its-hecker/local_manifests \
+  .repo/local_manifests &&
+repo sync -c -j8 --fail-fast --force-sync \
+  --no-clone-bundle --no-tags --optimized-fetch --prune &&
+git -C kernel/google/msm-4.14 submodule update --init --recursive
+
+After sync succeeds, build with your protobuf and Face ID fixes:
+cd ~/infinityx &&
 source build/envsetup.sh &&
 breakfast lineage_coral-userdebug &&
 test "$TARGET_PRODUCT" = "lineage_coral" &&
 test "$TARGET_BUILD_VARIANT" = "userdebug" &&
-test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "true" &&
-python3 vendor/google/coral/camera/tools/prepare_camera.py --check-hashes &&
 bash .repo/local_manifests/apply-build-fixes.sh &&
 python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply &&
 mka -j8 selinux_policy &&
