@@ -2,7 +2,45 @@
 
 Local manifest and build notes for Project Infinity X (Android 17, based on LineageOS 24.0) on the Pixel 4 XL (coral), with Motion Sense, native 3D Face ID, Google Camera 8.7, KernelSU-Next and Lunaris Dolby. Compatibility libraries, apps and configuration live in the device, vendor and kernel trees. Face ID also requires two guarded framework adapter fixes applied from the device tree after syncing. The ROM's Settings source stays unmodified.
 
+## Complete build from mkdir (default jobs)
+
+Use a fresh Coral directory with the normal Android 17 build dependencies,
+Repo and Git LFS installed. On ServerHive, run this whole block in the provider's
+initialized Byobu/Tmux/RBE shell and keep RBE enabled. Choose this block or the
+original 8-job flow below for a fresh checkout; `&&` stops at the first failure.
+
+```bash
+mkdir -p ~/infinityx &&
+cd ~/infinityx &&
+git lfs install &&
+repo init -u https://github.com/ProjectInfinity-X/manifest -b 17 --git-lfs &&
+git clone --branch cnb-Latest-stable --single-branch https://github.com/its-hecker/local_manifests .repo/local_manifests &&
+repo sync -c --fail-fast --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune &&
+git -C kernel/google/msm-4.14 submodule update --init --recursive &&
+git -C vendor/google/coral lfs pull &&
+source build/envsetup.sh &&
+breakfast lineage_coral-userdebug &&
+test "$TARGET_PRODUCT" = "lineage_coral" &&
+test "$TARGET_BUILD_VARIANT" = "userdebug" &&
+test "$(build/soong/soong_ui.bash --dumpvar-mode USE_RBE)" = "true" &&
+python3 vendor/google/coral/camera/tools/prepare_camera.py --check-hashes &&
+bash .repo/local_manifests/apply-build-fixes.sh &&
+python3 device/google/coral/faceunlock/tools/apply_framework_fixes.py --apply &&
+mka selinux_policy &&
+mka bacon
+```
+
+No `-j` override is passed to `mka`, so the ROM/provider's build wrapper selects
+its default parallelism for both policy and ROM compilation. The source sync
+uses Repo's own default download parallelism. Camera checks, framework fixes,
+target verification and the RBE check are retained.
+ROM output: `out/target/product/coral/*.zip`.
+
 ## Complete build Steps
+
+**8 build jobs:** this original flow explicitly runs `mka -j8` for compilation.
+Other `mka -j8` examples in this guide use the same eight-job limit;
+`repo sync -j8` separately controls source downloads.
 
 Use the initialized ServerHive Byobu/Tmux build shell, with the Android 17
 host dependencies, Repo and Git LFS already installed. Copy this whole block
